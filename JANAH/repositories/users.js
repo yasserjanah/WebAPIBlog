@@ -61,7 +61,7 @@ module.exports = {
 		  		createdAt: moment().format("YYYY-MM-DD HH:mm:ss"),
 		  });
 		} catch (error) {
-		  	// console.log(error.errors)
+		  	console.log(error.errors)
 			user.error = `User with ${error.errors[0].path} '${error.errors[0].value}' already exists !`;
 			return user;
 		}
