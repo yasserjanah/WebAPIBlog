@@ -1,17 +1,22 @@
 const { User } = require('../models');
 
 const moment = require('moment');
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 
 module.exports = {
 
 	async getAllUsers(){
-		return await User.findAll({
+		return await User.findAndCountAll({
 			attributes: ['id', 'username', 'email', 'role'] // don't send users' passwords
 		});
 	},
 
-	async getUsers(offset = 0, limit = 10) {
-		return await User.findAll({ offset: parseInt(offset), limit: parseInt(limit),
+	async getUsers(offset = 0, limit = 0) {
+		if (parseInt(limit) < 0 || parseInt(offset) < 0){
+			return this.getAllUsers()
+		}
+		return await User.findAndCountAll({ offset: parseInt(offset), limit: parseInt(limit),
 			attributes: ['id', 'username', 'email', 'role'] // don't send users' passwords
 		});
 	},
@@ -37,58 +42,77 @@ module.exports = {
 		});
 	}, 
 
-	async getUser(id) {
+	async getUserById(id) {
 		return await User.findOne({
 			where:{ id },
 			attributes: ['id', 'username', 'email', 'role'] // don't send user passwords
 		});
 	},
 
-	async getUserByEmail(email) {
+	async getUserByUsername(username) {
 		return await User.findOne({
-			where:{ email: email },
+			where:{ username: { [Op.like] : `%${username}%`} },
 			attributes: ['id', 'username', 'email', 'role'] // don't send user passwords
 		});
 	},
 
+	async getUserByEmail(email) {
+		return await User.findOne({
+			where:{ email: { [Op.like] : `%${email}%`} },
+			attributes: ['id', 'username', 'email', 'role'] // don't send user passwords
+		});
+	},
+	
+	async getUserWithPasswordByEmail(email) {
+		return await User.findOne({
+			where:{ email: { [Op.like] : `%${email}%`} },
+			attributes: ['id', 'username', 'email', 'password', 'role'] // don't send user passwords
+		});
+	},
+	
 	async addUser(user) {
 		try {
-		  return await User.create({
+		  return await User.create({ // User.findOrCreate
 		  		username: user.username,
 		  		email: user.email,
-		  		password: user.password,
+		  		password: user.password_1,
 		  		role: user.role,
 		  		createdAt: moment().format("YYYY-MM-DD HH:mm:ss"),
 		  });
 		} catch (error) {
 		  	console.log(error.errors)
-			user.error = `User with ${error.errors[0].path} '${error.errors[0].value}' already exists !`;
+			// user.error = `User with ${error.errors[0].path} '${error.errors[0].value}' already exists !`;
+			user.error = `${error.errors[0].message.split(".")[1]} !`;
 			return user;
 		}
 	},
 
 	async updateUser(user) {
-		const updated  = await User.update({
-			username: user.username, password: user.password, role: user.role,
-			updatedAt : moment().format("YYYY-MM-DD HH:mm:ss")
-		  }, {where: { email: user.email }});
-		user.message = (updated == 1) ? "User updated!" : "failed to updated User";
-		return user;
+		const _user = await this.getUserWithPasswordByEmail(user.email);
+		if (_user != null && user.current_password == _user.password){ // check if current password equal to what user typed
+			const updated  = await User.update({
+				username: user.username, password: user.new_password, role: user.role,
+				updatedAt : moment().format("YYYY-MM-DD HH:mm:ss")
+			  }, {where: { email: user.email }});
+			user.done = updated;
+			return user;
+		}
+		user.error = "current password is not correct";
+		return user
 	},
 
 	async deleteUser(id) {
 		// TODO : admins can only delete users
-		let user = await this.getUser(id);
+		let user = await this.getUserById(id);
 		if (user !=  null){
 			const deleted = await User.destroy({
 				where: { id	}
 			});
 			let response = {}
-			response.id = user.id;
 			response.username = user.username;
 			response.email = user.email;
 			response.role = user.role;
-			response.message = (deleted == 1 ) ? "User Deleted!" : "Failed to delete User !"
+			response.done = deleted;
 			return response;
 		}
 		return {error : `User with id '${id}' is not exists !!`}
