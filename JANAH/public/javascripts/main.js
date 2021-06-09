@@ -518,11 +518,10 @@ const Pagination = () => {
     document.querySelector('#pag_next').addEventListener("click", () => {
         document.querySelector('#pag_prev').disabled = false;
         offset = getOffset();
-        limit = getLimit();
         from = getFrom();
         if ((parseInt(offset) + parseInt(from)) >= count) return (document.querySelector('#pag_next').disabled = true);
         offset = parseInt(offset) + parseInt(from)
-        limit = parseInt(offset) + parseInt(limit)
+        limit = parseInt(offset) + parseInt(getLimit())
         getAllUsers();
     })
     document.querySelector('#pag_prev').addEventListener("click", () => {
