@@ -57,7 +57,7 @@ var limit = getLimit();
 var offset = 0;
 var count;
 
-const URL = "/users"
+const URL = "/api/users"
 
 const getAllUsers = async() => {
     document.querySelector("#table").empty(); // avoid duplication
@@ -78,6 +78,7 @@ const getAllUsers = async() => {
 
 const getUser = async(value) => {
     document.querySelector("#table").empty(); // avoid duplication
+    if (value == "") return getAllUsers();
     const response = await fetch(`${URL}/${value}`, { method: 'GET', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } });
     if (response.ok) {
         const _response = await response.json();
@@ -130,7 +131,7 @@ const deleteUser = async(id) => {
         if (_response.error) {
             return AlertError("Delete User", _response.error);
         }
-        AlertSuccess("Delete User", (_response.done == 1) ? "User deleted successfuly" : "Failed to delete user")
+        AlertSuccess("Delete User", _response.message)
         document.querySelector('#modal_close').click();
         getAllUsers();
     }

@@ -1,4 +1,5 @@
 const { User } = require('../models');
+const { _getUserArticles } = require('./articles');
 
 const moment = require('moment');
 const Sequelize = require('sequelize');
@@ -19,6 +20,10 @@ module.exports = {
 		return await User.findAndCountAll({ offset: parseInt(offset), limit: parseInt(limit),
 			attributes: ['id', 'username', 'email', 'role'] // don't send users' passwords
 		});
+	},
+
+	async getUserArticles(id){
+		return await _getUserArticles(id);
 	},
 
 	async getAdmins() {
@@ -82,7 +87,7 @@ module.exports = {
 		} catch (error) {
 		  	console.log(error.errors)
 			// user.error = `User with ${error.errors[0].path} '${error.errors[0].value}' already exists !`;
-			user.error = `${error.errors[0].message.split(".")[1]} !`;
+			user.error = error.message;
 			return user;
 		}
 	},
@@ -103,19 +108,16 @@ module.exports = {
 
 	async deleteUser(id) {
 		// TODO : admins can only delete users
-		let user = await this.getUserById(id);
-		if (user !=  null){
-			const deleted = await User.destroy({
-				where: { id	}
-			});
-			let response = {}
-			response.username = user.username;
-			response.email = user.email;
-			response.role = user.role;
-			response.done = deleted;
-			return response;
+		try {
+			const deleted = await User.destroy({ where: { id	} });
+			if (deleted) {
+				return {message: "User deleted!"}
+			}
+			return {error:`User with id '${id}' is not exists !!`}
+		} catch(error) {
+			console.log(error.message);
+			return {error: error.message}
 		}
-		return {error : `User with id '${id}' is not exists !!`}
 	},
 
 }
