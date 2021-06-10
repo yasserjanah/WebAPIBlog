@@ -1,6 +1,7 @@
 const { User } = require('../models');
 const { _getUserArticles } = require('./articles');
 
+const bcrypt = require('bcrypt');
 const moment = require('moment');
 const Sequelize = require('sequelize');
 const Op = Sequelize.Op;
@@ -74,13 +75,17 @@ module.exports = {
 			attributes: ['id', 'username', 'email', 'password', 'role'] // don't send user passwords
 		});
 	},
+
+	generateHash(password) {
+		return bcrypt.hash(password, bcrypt.genSaltSync(8));
+	},
 	
 	async addUser(user) {
 		try {
 		  return await User.create({ // User.findOrCreate
 		  		username: user.username,
 		  		email: user.email,
-		  		password: user.password_1,
+		  		password: generateHash(user.password_1),
 		  		role: user.role,
 		  		createdAt: moment().format("YYYY-MM-DD HH:mm:ss"),
 		  });
@@ -94,9 +99,9 @@ module.exports = {
 
 	async updateUser(user) {
 		const _user = await this.getUserWithPasswordByEmail(user.email);
-		if (_user != null && user.current_password == _user.password){ // check if current password equal to what user typed
+		if (_user && _user.validPassword(password)){ // check if current password equal to what user typed
 			const updated  = await User.update({
-				username: user.username, password: user.new_password, role: user.role,
+				username: user.username, password: generateHash(user.new_password), role: user.role,
 				updatedAt : moment().format("YYYY-MM-DD HH:mm:ss")
 			  }, {where: { email: user.email }});
 			user.done = updated;
