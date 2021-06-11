@@ -33,13 +33,7 @@ module.exports = (sequelize, DataTypes) => {
     role: DataTypes.STRING
   }, {
     sequelize,
-    modelName: 'User',
-    freezeTableName: true,
-    instanceMethods:{
-        validPassword(password) {
-            return bcrypt.compare(password, this.password);
-        }
-    }
+    modelName: 'User'
   });
   return User;
 };

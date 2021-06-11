@@ -76,23 +76,30 @@ module.exports = {
 		});
 	},
 
-	generateHash(password) {
-		return bcrypt.hash(password, bcrypt.genSaltSync(8));
+	async generateHash(password) {
+		return await bcrypt.hash(password, bcrypt.genSaltSync(8));
+	},
+
+	async validPassword(password_1, password_2) {
+		return await bcrypt.compare(password_1, password_2);
 	},
 	
 	async addUser(user) {
 		try {
+		  const hashed_password = await this.generateHash(user.password_1)
 		  return await User.create({ // User.findOrCreate
 		  		username: user.username,
 		  		email: user.email,
-		  		password: generateHash(user.password_1),
+		  		password: hashed_password,
 		  		role: user.role,
 		  		createdAt: moment().format("YYYY-MM-DD HH:mm:ss"),
 		  });
 		} catch (error) {
-		  	console.log(error.errors)
 			// user.error = `User with ${error.errors[0].path} '${error.errors[0].value}' already exists !`;
-			user.error = error.message;
+			user.error = ""
+			if (typeof error.errors == "object"){
+				user.error = error.errors[0].message
+			}else user.error = error.message;
 			return user;
 		}
 	},

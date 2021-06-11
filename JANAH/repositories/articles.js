@@ -9,7 +9,6 @@ module.exports = {
 
 	async getAllArticles(){
 		return await Article.findAndCountAll({
-			where:{ published : true },
 			attributes: ['id', 'title', 'content', 'createdAt'],
 			include: [
 		        {
@@ -22,7 +21,7 @@ module.exports = {
 
 	async getArticle(id) {
 		return await Article.findOne({
-			where:{ id, published : true },
+			where:{ id },
 			attributes: ['id', 'title', 'content', 'createdAt'],
 			include: [
 		        {
@@ -36,12 +35,22 @@ module.exports = {
 	async _getUserArticles(id) {
 		return await Article.findAndCountAll({
 			where:{ UserId:id },
-			attributes: ['id', 'title', 'content', 'createdAt']
+			attributes: ['id', 'title', 'content', 'createdAt', 'UserId']
 		});
 	},
 
 	async getArticleComments(id) {
 		return await _getArticleComments(id);
+	},
+
+	async isUserArticle(aid, uid) {
+		const article = await Article.findOne({
+			where:{ id:aid, UserId:uid },
+			attributes: ['id', 'title', 'content', 'createdAt']
+		});
+		console.log(article)
+		if (article) return true;
+		return false;
 	},
 	
 	async addArticle(article) {
@@ -50,18 +59,24 @@ module.exports = {
 		  		title: article.title,
 		  		content: article.content,
 		  		published: article.published,
-		  		UserId: 1, // for test only
+		  		UserId: article.user.id,
 		  		createdAt: moment().format("YYYY-MM-DD HH:mm:ss"),
 		  });
 		} catch (error) {
-		  	console.log(error.errors)
-			article.error = `${error.errors[0].message.split(".")[1]} !`;
+			article.error = ""
+			if (typeof error.errors == "object"){
+				article.error = error.errors[0].message
+			}else article.error = error.message;
 			return article;
 		}
 	},
 
 	async updateArticle(article) {
 		try {
+			if (!(await this.isUserArticle(article.id, article.user.id)))
+				// avoid IDOR (Insecure Direct Object Reference) Attacks
+				throw new Error("You are not the Owner if this Article (IDOR Detected) !");
+				
 			const [ updated ] = await Article.update({
 				title: article.title,
 				content: article.content,
@@ -75,14 +90,18 @@ module.exports = {
 			}
 			return {error: `Article with id=${article.id} doesn't exists.`}		
 		} catch(error) {
-			console.log(error.message);
+			console.log(error);
 			return {error: error.message}		
 		}
 
 	},
 
-	async deleteArticle(id) {
+	async deleteArticle(id, uid) {
 		try {
+			if (!(await this.isUserArticle(article.id, article.user.id)))
+				// avoid IDOR (Insecure Direct Object Reference) Attacks
+				throw new Error("You are not the Owner if this Article (IDOR Detected) !");
+				
 			const deleted = await Article.destroy({ where: { id	} });
 			if (deleted) {
 				return {message:"Article deleted!"}

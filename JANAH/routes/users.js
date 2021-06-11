@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 
 const usersRepo = require('../repositories/users');
+const { authCheck } = require('../auth/auth');
 
 router.get('/', async function(req, res, next) {
 	let response = await (req.query.offset && req.query.limit) ? usersRepo.getUsers(req.query.offset, req.query.limit) : usersRepo.getAllUsers()
@@ -22,7 +23,7 @@ router.get('/:id/articles', async function(req, res, next) {
 	res.send(await usersRepo.getUserArticles(req.params.id));
 });
 
-router.post('/', async function(req, res, next) {
+router.post('/', authCheck, async function(req, res, next) {
   	let user = {};
   	user.username = req.body.username;
   	user.email = req.body.email;
@@ -35,7 +36,7 @@ router.post('/', async function(req, res, next) {
   		res.status(200).send({error: "password_1 doesn't equal password_2"})
 });
 
-router.put('/', async function(req, res, next) {
+router.put('/', authCheck, async function(req, res, next) {
   	var user = {};
   	user.username = req.body.username;
   	user.email = req.body.email;
@@ -45,7 +46,7 @@ router.put('/', async function(req, res, next) {
   	res.status(200).send(await usersRepo.updateUser(user));
 });
 
-router.delete('/:id', async function(req, res, next) {
+router.delete('/:id', authCheck, async function(req, res, next) {
   	res.status(200).send(await usersRepo.deleteUser(req.params.id));
 });
 
