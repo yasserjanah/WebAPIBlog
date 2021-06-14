@@ -9,7 +9,27 @@ module.exports = {
 
 	async getAllArticles(){
 		return await Article.findAndCountAll({
+			where:{ published: true},
 			attributes: ['id', 'title', 'content', 'createdAt'],
+			include: [
+		        {
+		          model: User,
+		          attributes: ['id', 'username', 'email']
+		        }
+		      ]
+		});
+	},
+
+	async getArticles(offset = 0, limit = 0) {
+		if (parseInt(limit) < 0 || parseInt(offset) < 0){
+			return this.getAllArticles()
+		}
+		return await Article.findAndCountAll({ offset: parseInt(offset), limit: parseInt(limit),
+			where:{ published: true},
+			attributes: ['id', 'title', 'content', 'createdAt'],
+			order: [
+			    ['id', 'DESC']
+			 ],
 			include: [
 		        {
 		          model: User,
@@ -48,7 +68,6 @@ module.exports = {
 			where:{ id:aid, UserId:uid },
 			attributes: ['id', 'title', 'content', 'createdAt']
 		});
-		console.log(article)
 		if (article) return true;
 		return false;
 	},
@@ -98,11 +117,10 @@ module.exports = {
 
 	async deleteArticle(id, uid) {
 		try {
-			if (!(await this.isUserArticle(article.id, article.user.id)))
+			if (!(await this.isUserArticle(id, uid)))
 				// avoid IDOR (Insecure Direct Object Reference) Attacks
 				throw new Error("You are not the Owner if this Article (IDOR Detected) !");
-				
-			const deleted = await Article.destroy({ where: { id	} });
+			const deleted = await Article.destroy({ where: { id	: id} });
 			if (deleted) {
 				return {message:"Article deleted!"}
 			}

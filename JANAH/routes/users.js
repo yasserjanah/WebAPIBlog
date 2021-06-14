@@ -6,6 +6,7 @@ const { authCheck } = require('../auth/auth');
 
 router.get('/', async function(req, res, next) {
 	let response = await (req.query.offset && req.query.limit) ? usersRepo.getUsers(req.query.offset, req.query.limit) : usersRepo.getAllUsers()
+	//console.log((await response).rows.length)
   	res.status(200).send(await response);
 });
 

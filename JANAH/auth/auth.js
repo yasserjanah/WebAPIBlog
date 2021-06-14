@@ -14,6 +14,8 @@ const authCheck = (req, res, next) => {
 		        return req.headers.authorization.split(' ')[1];
 		    } else if (req.query && req.query.token) {
 		      return req.query.token;
+		    } else if (req.cookies && req.cookies.token){
+		    	return req.cookies.token
 		    }
 		    return null;
 		  }
@@ -31,8 +33,31 @@ const authCheck = (req, res, next) => {
 }
 
 const createToken = (user) => {
-	const token = jsonwebtoken.sign({ id:user.id, email:user.email, role:user.role }, secretKey, { expiresIn: '1d' });
+	const token = jsonwebtoken.sign({ id:user.id, username:user.username, email:user.email, role:user.role }, secretKey, { expiresIn: '1d' });
 	return token;
 }
 
-module.exports = { authCheck, createToken };
+const isValidToken = (req, res, next) => {
+	jwt({
+		secret: secretKey, algorithms: ['HS256'], credentialsRequired: false,
+		getToken: (req) => {
+		    if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+		        return req.headers.authorization.split(' ')[1];
+		    } else if (req.query && req.query.token) {
+		      return req.query.token;
+		    } else if (req.cookies && req.cookies.token){
+				return req.cookies.token
+		   	}
+		    return null;
+		  }
+	})(req, res, function(err){
+		if (err) { 
+			if (err.name == "UnauthorizedError") return res.status(200).json({error: "Invalid Token"})
+			return res.status(500).json({error: "500 Internal Server Error"})
+		}
+	    if (!req.user) return res.status(200).json({error: "Invalid Token"});
+	    return res.status(200).json({message: "Token is valid.", username: req.user.username, id:req.user.id});
+	});
+}
+
+module.exports = { authCheck, createToken, isValidToken };

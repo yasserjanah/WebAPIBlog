@@ -5,7 +5,9 @@ const articleRepo = require('../repositories/articles');
 const { authCheck } = require('../auth/auth');
 
 router.get('/', async function(req, res, next) {
-  	res.status(200).send(await articleRepo.getAllArticles());
+	let response = await (req.query.offset && req.query.limit) ? articleRepo.getArticles(req.query.offset, req.query.limit) : articleRepo.getAllArticles()
+	//console.log((await response).rows.length)
+  	res.status(200).send(await response);
 });
 
 router.get('/:id', async function(req, res, next) {
@@ -22,6 +24,7 @@ router.post('/', authCheck, async function(req, res, next) {
   	article.title = req.body.title;
   	article.content = req.body.content;
   	article.published = req.body.published;
+  	//console.log(article)
 	res.status(201).send(await articleRepo.addArticle(article));
 
 });
@@ -29,7 +32,7 @@ router.post('/', authCheck, async function(req, res, next) {
 router.put('/', authCheck, async function(req, res, next) {
   	var article = {};
   	article.user = req.user;
-  	article.id = req.body.id;
+  	article.id = parseInt(req.body.id);
   	article.title = req.body.title;
   	article.content = req.body.content;
   	article.published = req.body.published;
@@ -37,7 +40,7 @@ router.put('/', authCheck, async function(req, res, next) {
 });
 
 router.delete('/:id', authCheck, async function(req, res, next) {
-  	res.status(200).send(await articleRepo.deleteArticle(req.params.id, req.user.id));
+  	res.status(200).send(await articleRepo.deleteArticle(parseInt(req.params.id), req.user.id));
 });
 
 module.exports = router;
